@@ -1,11 +1,21 @@
+/* XNA4 Specification Mismatch Test Program for FNA
+ * Written by Nick Gravelyn
+ * http://www.brushfiregames.com/
+ *
+ * Updates by Ethan "flibitijibibo" Lee
+ * http://www.flibitijibibo.com/
+ *
+ * Released under public domain.
+ * No warranty implied; use at your own risk.
+ */
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Xml.Serialization;
 
-namespace AssemblyCompare
+namespace XNA4SpecTest
 {
     class Program
     {
@@ -16,12 +26,12 @@ namespace AssemblyCompare
             // Gather up all the XNA types from all redist assemblies. We're not looking at content pipeline stuff.
             var xnaTypes = GetAllTypes(
                 typeof(Microsoft.Xna.Framework.Vector2).Assembly, // Microsoft.Xna.Framework.dll
-                typeof(Microsoft.Xna.Framework.GamerServices.AvatarDescription).Assembly, // Microsoft.Xna.Framework.Avatar.dll
+                // lol: typeof(Microsoft.Xna.Framework.GamerServices.AvatarDescription).Assembly, // Microsoft.Xna.Framework.Avatar.dll
                 typeof(Microsoft.Xna.Framework.Game).Assembly, // Microsoft.Xna.Framework.Game.dll
-                typeof(Microsoft.Xna.Framework.GamerServices.GamerServicesDispatcher).Assembly, // Microsoft.Xna.Framework.GamerServices.dll
+                // MonoGame.Net: typeof(Microsoft.Xna.Framework.GamerServices.GamerServicesDispatcher).Assembly, // Microsoft.Xna.Framework.GamerServices.dll
                 typeof(Microsoft.Xna.Framework.Graphics.GraphicsDevice).Assembly, // Microsoft.Xna.Framework.Graphics.dll
-                typeof(Microsoft.Xna.Framework.Input.Touch.TouchCollection).Assembly, // Microsoft.Xna.Framework.Input.Touch.dll
-                typeof(Microsoft.Xna.Framework.Net.PacketReader).Assembly, // Microsoft.Xna.Framework.Net.dll
+                // TODO: typeof(Microsoft.Xna.Framework.Input.Touch.TouchCollection).Assembly, // Microsoft.Xna.Framework.Input.Touch.dll
+                // MonoGame.Net: typeof(Microsoft.Xna.Framework.Net.PacketReader).Assembly, // Microsoft.Xna.Framework.Net.dll
                 typeof(Microsoft.Xna.Framework.Storage.StorageContainer).Assembly, // Microsoft.Xna.Framework.Storage.dll
                 typeof(Microsoft.Xna.Framework.Media.Video).Assembly, // Microsoft.Xna.Framework.Video.dll
                 typeof(Microsoft.Xna.Framework.Audio.WaveBank).Assembly // Microsoft.Xna.Framework.Xact.dll
@@ -61,7 +71,7 @@ namespace AssemblyCompare
                 }
             }
 
-            using (var writer = new StreamWriter("Results.txt"))
+            using (var writer = new StreamWriter("SpecMismatches.txt"))
             {
                 if (results.TypesNotInFNA.Count > 0)
                 {
@@ -159,6 +169,31 @@ namespace AssemblyCompare
             }
         }
 
+        // flibit added this to get around mismatches based on assembly name.
+        private static string CleanString(string fullName)
+        {
+            if (fullName == null)
+            {
+                return null;
+            }
+            string[] assemblyIndicators = new string[]
+            {
+                ", Microsoft.Xna.Framework",
+                ", MonoGame.Framework"
+            };
+            foreach (string indicator in assemblyIndicators)
+            {
+                if (fullName.Contains(indicator))
+                {
+                    return fullName.Substring(
+                        0,
+                        fullName.LastIndexOf(indicator)
+                    );
+                }
+            }
+            return fullName;
+        }
+
         private static void CompareTypes(Type xnaType, Type fnaType, TypeResults results)
         {
             var xnaFields = xnaType.GetFields();
@@ -219,7 +254,7 @@ namespace AssemblyCompare
             }
 
             // Compare type names because XNA types won't match FNA types but their names should
-            if (field1.FieldType.FullName != field2.FieldType.FullName)
+            if (CleanString(field1.FieldType.FullName) != CleanString(field2.FieldType.FullName))
             {
                 return true;
             }
@@ -244,8 +279,14 @@ namespace AssemblyCompare
                 return true;
             }
 
+            // FIXME: WTF...? -flibit
+            if (prop1.Name == "Item" && prop2.Name == "Item")
+            {
+                return false;
+            }
+
             // Compare type names because XNA types won't match FNA types but their names should
-            if (prop1.PropertyType.FullName != prop2.PropertyType.FullName)
+            if (CleanString(prop1.PropertyType.FullName) != CleanString(prop2.PropertyType.FullName))
             {
                 return true;
             }
@@ -276,7 +317,7 @@ namespace AssemblyCompare
             }
 
             // Compare type names because XNA types won't match FNA types but their names should
-            if (evt1.EventHandlerType.FullName != evt2.EventHandlerType.FullName)
+            if (CleanString(evt1.EventHandlerType.FullName) != CleanString(evt2.EventHandlerType.FullName))
             {
                 return true;
             }
@@ -307,7 +348,7 @@ namespace AssemblyCompare
             }
 
             // Compare type names because XNA types won't match FNA types but their names should
-            if (method1.ReturnType.FullName != method2.ReturnType.FullName)
+            if (CleanString(method1.ReturnType.FullName) != CleanString(method2.ReturnType.FullName))
             {
                 return true;
             }
@@ -325,7 +366,7 @@ namespace AssemblyCompare
                 var p1 = params1.ElementAt(i);
                 var p2 = params2.ElementAt(i);
 
-                if (p1.ParameterType.FullName != p2.ParameterType.FullName)
+                if (CleanString(p1.ParameterType.FullName) != CleanString(p2.ParameterType.FullName))
                 {
                     return true;
                 }
