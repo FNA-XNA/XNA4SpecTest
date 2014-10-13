@@ -38,8 +38,8 @@ namespace XNA4SpecTest
             );
 
             // Gather up the FNA types.
-            // Assuming here that you've got MonoGame.Framework.dll, SDL2-CS.dll, and TheoraPlay-CS.dll in the output directory.
-            var fnaTypes = GetAllTypes(Assembly.LoadFrom("MonoGame.Framework.dll"));
+            // Assuming here that you've got FNA.dll in the output directory.
+            var fnaTypes = GetAllTypes(Assembly.LoadFrom("FNA.dll"));
 
             // Figure out if there are any types in XNA that aren't in FNA
             results.TypesNotInFNA.AddRange(from p in xnaTypes
@@ -179,7 +179,7 @@ namespace XNA4SpecTest
             string[] assemblyIndicators = new string[]
             {
                 ", Microsoft.Xna.Framework",
-                ", MonoGame.Framework"
+                ", FNA"
             };
             foreach (string indicator in assemblyIndicators)
             {
