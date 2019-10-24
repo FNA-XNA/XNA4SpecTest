@@ -1,9 +1,10 @@
 This is the XNA4 Specification Mismatch Test Program for FNA.
 
-Odds are, unless you're working on this task...
+This program exists as a quick test to make sure that we don't have any
+unintended violations in FNA's exports, which could lead to ABI breakages and
+compatibility issues with the original XNA libraries.
 
-https://github.com/flibitijibibo/MonoGame/issues/195
-
-... this repository is useless to you. Also, you need Windows. Sorry.
+This was originally written by Nick Gravelyn and is now maintained by the FNA
+team. Thanks to Nick for this program!
 
 -flibit
