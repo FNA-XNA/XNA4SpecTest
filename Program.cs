@@ -28,10 +28,10 @@ namespace XNA4SpecTest
                 typeof(Microsoft.Xna.Framework.Vector2).Assembly, // Microsoft.Xna.Framework.dll
                 // lol: typeof(Microsoft.Xna.Framework.GamerServices.AvatarDescription).Assembly, // Microsoft.Xna.Framework.Avatar.dll
                 typeof(Microsoft.Xna.Framework.Game).Assembly, // Microsoft.Xna.Framework.Game.dll
-                // MonoGame.Net: typeof(Microsoft.Xna.Framework.GamerServices.GamerServicesDispatcher).Assembly, // Microsoft.Xna.Framework.GamerServices.dll
+                // FNA.NetStub: typeof(Microsoft.Xna.Framework.GamerServices.GamerServicesDispatcher).Assembly, // Microsoft.Xna.Framework.GamerServices.dll
                 typeof(Microsoft.Xna.Framework.Graphics.GraphicsDevice).Assembly, // Microsoft.Xna.Framework.Graphics.dll
                 typeof(Microsoft.Xna.Framework.Input.Touch.TouchCollection).Assembly, // Microsoft.Xna.Framework.Input.Touch.dll
-                // MonoGame.Net: typeof(Microsoft.Xna.Framework.Net.PacketReader).Assembly, // Microsoft.Xna.Framework.Net.dll
+                // FNA.NetStub: typeof(Microsoft.Xna.Framework.Net.PacketReader).Assembly, // Microsoft.Xna.Framework.Net.dll
                 typeof(Microsoft.Xna.Framework.Storage.StorageContainer).Assembly, // Microsoft.Xna.Framework.Storage.dll
                 typeof(Microsoft.Xna.Framework.Media.Video).Assembly, // Microsoft.Xna.Framework.Video.dll
                 typeof(Microsoft.Xna.Framework.Audio.WaveBank).Assembly // Microsoft.Xna.Framework.Xact.dll
