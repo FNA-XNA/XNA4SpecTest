@@ -30,7 +30,7 @@ namespace XNA4SpecTest
                 typeof(Microsoft.Xna.Framework.Game).Assembly, // Microsoft.Xna.Framework.Game.dll
                 // MonoGame.Net: typeof(Microsoft.Xna.Framework.GamerServices.GamerServicesDispatcher).Assembly, // Microsoft.Xna.Framework.GamerServices.dll
                 typeof(Microsoft.Xna.Framework.Graphics.GraphicsDevice).Assembly, // Microsoft.Xna.Framework.Graphics.dll
-                // TODO: typeof(Microsoft.Xna.Framework.Input.Touch.TouchCollection).Assembly, // Microsoft.Xna.Framework.Input.Touch.dll
+                typeof(Microsoft.Xna.Framework.Input.Touch.TouchCollection).Assembly, // Microsoft.Xna.Framework.Input.Touch.dll
                 // MonoGame.Net: typeof(Microsoft.Xna.Framework.Net.PacketReader).Assembly, // Microsoft.Xna.Framework.Net.dll
                 typeof(Microsoft.Xna.Framework.Storage.StorageContainer).Assembly, // Microsoft.Xna.Framework.Storage.dll
                 typeof(Microsoft.Xna.Framework.Media.Video).Assembly, // Microsoft.Xna.Framework.Video.dll
@@ -50,6 +50,10 @@ namespace XNA4SpecTest
             // Figure out if there are any types in FNA that aren't in XNA
             results.TypesExtraInFNA.AddRange(from p in fnaTypes
                                              where !xnaTypes.ContainsKey(p.Key)
+                                             // Ignore any types which aren't in the Microsoft.Xna.Framework* namespaces.
+                                             where p.Key.StartsWith("Microsoft.Xna.Framework")
+                                             // Ignore any EXT types.
+                                             where !p.Key.EndsWith("EXT")
                                              orderby p.Key
                                              select p.Value.FullName);
 
@@ -147,6 +151,22 @@ namespace XNA4SpecTest
                                 writer.WriteLine("\t\t\t{0}", e);
                             }
                         }
+                        if (t.ConstructorsNotInFNA.Count > 0)
+                        {
+                            writer.WriteLine("\t\tConstructors Not In FNA:");
+                            foreach (var c in t.ConstructorsNotInFNA)
+                            {
+                                writer.WriteLine("\t\t\t{0}", c);
+                            }
+                        }
+                        if (t.ConstructorsExtraInFNA.Count > 0)
+                        {
+                            writer.WriteLine("\t\tConstructors Extra In FNA:");
+                            foreach (var c in t.ConstructorsExtraInFNA)
+                            {
+                                writer.WriteLine("\t\t\t{0}", c);
+                            }
+                        }
                         if (t.MethodsNotInFNA.Count > 0)
                         {
                             writer.WriteLine("\t\tMethods Not In FNA:");
@@ -203,6 +223,7 @@ namespace XNA4SpecTest
                                             orderby f.Name
                                             select f.GetSignature());
             results.FieldsExtraInFNA.AddRange(from f in fnaFields
+                                              where !f.Name.EndsWith("EXT")
                                               where AreFieldsDifferent(f, xnaFields.FirstOrDefault(f2 => f2.Name == f.Name))
                                               orderby f.Name
                                               select f.GetSignature());
@@ -214,6 +235,7 @@ namespace XNA4SpecTest
                                                 orderby p.Name
                                                 select p.GetSignature());
             results.PropertiesExtraInFNA.AddRange(from p in fnaProperties
+                                                  where !p.Name.EndsWith("EXT")
                                                   where ArePropertiesDifferent(p, xnaProperties.FirstOrDefault(p2 => p2.Name == p.Name))
                                                   orderby p.Name
                                                   select p.GetSignature());
@@ -225,9 +247,21 @@ namespace XNA4SpecTest
                                             orderby e.Name
                                             select e.GetSignature());
             results.EventsExtraInFNA.AddRange(from e in fnaEvents
+                                              where !e.Name.EndsWith("EXT")
                                               where AreEventsDifferent(e, xnaEvents.FirstOrDefault(e2 => e2.Name == e.Name))
                                               orderby e.Name
                                               select e.GetSignature());
+
+            var xnaConstructors = xnaType.GetConstructors();
+            var fnaConstructors = fnaType.GetConstructors();
+            results.ConstructorsNotInFNA.AddRange(from c in xnaConstructors
+                                             where AreMethodsDifferent(c, fnaConstructors.FirstOrDefault(m2 => !AreMethodsDifferent(c, m2)))
+                                             orderby c.Name
+                                             select c.GetSignature());
+            results.ConstructorsExtraInFNA.AddRange(from c in fnaConstructors
+                                               where AreMethodsDifferent(c, xnaConstructors.FirstOrDefault(m2 => !AreMethodsDifferent(c, m2)))
+                                               orderby c.Name
+                                               select c.GetSignature());
 
             var xnaMethods = xnaType.GetMethods().Where(m => !m.IsSpecialName);
             var fnaMethods = fnaType.GetMethods().Where(m => !m.IsSpecialName);
@@ -236,6 +270,7 @@ namespace XNA4SpecTest
                                              orderby m.Name
                                              select m.GetSignature());
             results.MethodsExtraInFNA.AddRange(from m in fnaMethods
+                                               where !m.Name.EndsWith("EXT")
                                                where AreMethodsDifferent(m, xnaMethods.FirstOrDefault(m2 => !AreMethodsDifferent(m, m2)))
                                                orderby m.Name
                                                select m.GetSignature());
@@ -330,7 +365,7 @@ namespace XNA4SpecTest
             return false;
         }
 
-        private static bool AreMethodsDifferent(MethodInfo method1, MethodInfo method2)
+        private static bool AreMethodsDifferent(MethodBase method1, MethodBase method2)
         {
             if (method1 == null && method2 == null)
             {
@@ -347,10 +382,21 @@ namespace XNA4SpecTest
                 return true;
             }
 
-            // Compare type names because XNA types won't match FNA types but their names should
-            if (CleanString(method1.ReturnType.FullName) != CleanString(method2.ReturnType.FullName))
+            var methodInfo1 = method1 as MethodInfo;
+            var methodInfo2 = method2 as MethodInfo;
+
+            if ((methodInfo1 == null && methodInfo2 != null) || (methodInfo1 != null && methodInfo2 == null))
             {
                 return true;
+            }
+
+            if (methodInfo1 != null && methodInfo2 != null)
+            {
+                // Compare type names because XNA types won't match FNA types but their names should
+                if (CleanString(methodInfo1.ReturnType.FullName) != CleanString(methodInfo2.ReturnType.FullName))
+                {
+                    return true;
+                }
             }
 
             var params1 = method1.GetParameters();
@@ -459,6 +505,37 @@ namespace XNA4SpecTest
             return sig;
         }
 
+        public static string GetSignature(this ConstructorInfo method) {
+            var sig = string.Format("{0}(", method.DeclaringType.Name);
+
+            if (method.IsStatic) {
+                sig = "static " + sig;
+            }
+
+            var parameters = method.GetParameters();
+            for (int i = 0; i < parameters.Count(); i++) {
+                var p = parameters.ElementAt(i);
+
+                var pStr = string.Format("{0} {1}", p.ParameterType, p.Name);
+
+                if (p.IsOut) {
+                    pStr = "out " + pStr;
+                } else if (p.IsRetval) {
+                    pStr = "ref " + pStr;
+                }
+
+                sig += pStr;
+
+                if (i < parameters.Count() - 1) {
+                    sig += ", ";
+                }
+            }
+
+            sig += ")";
+
+            return sig;
+        }
+
         public static string GetSignature(this MethodInfo method)
         {
             var sig = string.Format("{0} {1}(", method.ReturnType, method.Name);
@@ -519,6 +596,9 @@ namespace XNA4SpecTest
         public List<string> EventsNotInFNA = new List<string>();
         public List<string> EventsExtraInFNA = new List<string>();
 
+        public List<string> ConstructorsNotInFNA = new List<string>();
+        public List<string> ConstructorsExtraInFNA = new List<string>();
+
         public List<string> MethodsNotInFNA = new List<string>();
         public List<string> MethodsExtraInFNA = new List<string>();
 
@@ -531,6 +611,8 @@ namespace XNA4SpecTest
                 PropertiesExtraInFNA.Count == 0 &&
                 EventsNotInFNA.Count == 0 &&
                 EventsExtraInFNA.Count == 0 &&
+                ConstructorsNotInFNA.Count == 0 &&
+                ConstructorsExtraInFNA.Count == 0 &&
                 MethodsNotInFNA.Count == 0 &&
                 MethodsExtraInFNA.Count == 0;
         }
